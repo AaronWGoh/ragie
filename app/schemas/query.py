@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List, Union
+from uuid import UUID
 
 
 class Query(BaseModel):
@@ -79,3 +80,9 @@ class GenerationResponse(BaseModel):
     """Schema for generation responses"""
 
     response: str
+
+
+class SyncResponse(BaseModel):
+    """Schema for sync responses"""
+
+    message: str

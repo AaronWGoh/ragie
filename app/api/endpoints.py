@@ -1,17 +1,20 @@
 from fastapi import APIRouter, HTTPException
-from app.schemas.query import (
+from schemas.query import (
     Query,
     RetrievalRequest,
     RetrievalResponse,
     GenerationRequest,
     GenerationResponse,
+    SyncResponse,
 )
-from app.core.services import (
+from core.services import (
     get_ragie_chunks,
     generate_response,
     retrieve_chunks,
     generate_with_retrieval,
+    sync_connection,
 )
+from uuid import UUID
 
 router = APIRouter()
 
@@ -52,5 +55,16 @@ async def generate(request: GenerationRequest):
     """
     try:
         return generate_with_retrieval(request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/connections/{connection_id}/sync", response_model=SyncResponse)
+async def sync(connection_id: UUID):
+    """
+    Schedule a connector to sync as soon as possible
+    """
+    try:
+        return sync_connection(connection_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

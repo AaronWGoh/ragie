@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.endpoints import router
+from api.endpoints import router
 
 app = FastAPI(title="Ragie RAG System")
 

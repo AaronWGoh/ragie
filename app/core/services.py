@@ -1,13 +1,15 @@
 import requests
 from openai import OpenAI
-from app.core.config import RAGIE_API_KEY, OPENAI_API_KEY
-from app.schemas.query import (
+from core.config import RAGIE_API_KEY, OPENAI_API_KEY
+from schemas.query import (
     RetrievalRequest,
     RetrievalResponse,
     ScoredChunk,
     GenerationRequest,
     GenerationResponse,
+    SyncResponse,
 )
+from uuid import UUID
 
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
@@ -156,3 +158,21 @@ END SYSTEM INSTRUCTIONS"""
     )
 
     return GenerationResponse(response=completion.choices[0].message.content)
+
+
+def sync_connection(connection_id: UUID) -> SyncResponse:
+    """
+    Schedule a connector to sync as soon as possible
+    """
+    ragie_response = requests.post(
+        f"https://api.ragie.ai/connections/{connection_id}/sync",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {RAGIE_API_KEY}",
+        },
+    )
+
+    if not ragie_response.ok:
+        raise Exception(f"Ragie API error: {ragie_response.text}")
+
+    return SyncResponse(message=ragie_response.json()["message"])
