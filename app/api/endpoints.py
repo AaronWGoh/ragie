@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from schemas.query import (
     Query,
     RetrievalRequest,
@@ -6,6 +6,9 @@ from schemas.query import (
     GenerationRequest,
     GenerationResponse,
     SyncResponse,
+    DocumentMetadata,
+    DocumentStatus,
+    DocumentUploadResponse,
 )
 from core.services import (
     get_ragie_chunks,
@@ -13,8 +16,12 @@ from core.services import (
     retrieve_chunks,
     generate_with_retrieval,
     sync_connection,
+    upload_document,
+    get_document_status,
 )
 from uuid import UUID
+import tempfile
+import os
 
 router = APIRouter()
 
@@ -66,5 +73,49 @@ async def sync(connection_id: UUID):
     """
     try:
         return sync_connection(connection_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/documents", response_model=DocumentUploadResponse)
+async def upload_doc(
+    file: UploadFile = File(...), metadata: str = Form(None), mode: str = Form("fast")
+):
+    """
+    Upload a document to Ragie for processing
+    """
+    try:
+        # Create a temporary file to store the uploaded content
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            content = await file.read()
+            temp_file.write(content)
+            temp_file_path = temp_file.name
+
+        # Parse metadata if provided
+        doc_metadata = None
+        if metadata:
+            doc_metadata = DocumentMetadata.model_validate_json(metadata)
+
+        # Upload the document
+        response = upload_document(
+            file_path=temp_file_path, metadata=doc_metadata, mode=mode
+        )
+
+        # Clean up the temporary file
+        os.unlink(temp_file_path)
+
+        return response
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/documents/{document_id}", response_model=DocumentStatus)
+async def document_status(document_id: UUID):
+    """
+    Get the status of a document in Ragie
+    """
+    try:
+        return get_document_status(document_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

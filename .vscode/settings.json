@@ -1,0 +1,8 @@
+{
+  "python.defaultInterpreterPath": "./app/.venv/bin/python",
+  "python.analysis.extraPaths": ["./app"],
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "always"
+  }
+}

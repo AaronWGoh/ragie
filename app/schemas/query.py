@@ -1,6 +1,7 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional, Dict, Any, List
 from uuid import UUID
+from datetime import datetime
 
 
 class Query(BaseModel):
@@ -86,3 +87,32 @@ class SyncResponse(BaseModel):
     """Schema for sync responses"""
 
     message: str
+
+
+class DocumentMetadata(BaseModel):
+    """Schema for document metadata"""
+
+    title: Optional[str] = None
+    scope: Optional[str] = None
+    # Add any other metadata fields as needed
+    # These are just examples from the tutorial
+
+
+class DocumentStatus(BaseModel):
+    """Schema for document status response"""
+
+    id: UUID
+    created_at: datetime
+    updated_at: datetime
+    status: str
+    name: str
+    metadata: DocumentMetadata
+    chunk_count: int
+    external_id: Optional[str] = None
+
+
+class DocumentUploadResponse(BaseModel):
+    """Schema for document upload response"""
+
+    id: UUID
+    status: str

@@ -8,8 +8,13 @@ from schemas.query import (
     GenerationRequest,
     GenerationResponse,
     SyncResponse,
+    DocumentMetadata,
+    DocumentStatus,
+    DocumentUploadResponse,
 )
 from uuid import UUID
+from pathlib import Path
+from typing import Optional
 
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
@@ -176,3 +181,70 @@ def sync_connection(connection_id: UUID) -> SyncResponse:
         raise Exception(f"Ragie API error: {ragie_response.text}")
 
     return SyncResponse(message=ragie_response.json()["message"])
+
+
+def upload_document(
+    file_path: str, metadata: Optional[DocumentMetadata] = None, mode: str = "fast"
+) -> DocumentUploadResponse:
+    """
+    Upload a document to Ragie for processing
+    """
+    # Read the file
+    file_path_obj = Path(file_path)
+    if not file_path_obj.exists():
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    # Prepare the form data
+    files = {"file": (file_path_obj.name, open(file_path, "rb"))}
+
+    # Add metadata if provided
+    data = {"mode": mode}
+    if metadata:
+        data["metadata"] = metadata.model_dump_json()
+
+    # Make the API request
+    ragie_response = requests.post(
+        "https://api.ragie.ai/documents",
+        headers={
+            "Authorization": f"Bearer {RAGIE_API_KEY}",
+            "Accept": "application/json",
+        },
+        files=files,
+        data=data,
+    )
+
+    if not ragie_response.ok:
+        raise Exception(f"Ragie API error: {ragie_response.text}")
+
+    response_data = ragie_response.json()
+    return DocumentUploadResponse(
+        id=UUID(response_data["id"]), status=response_data["status"]
+    )
+
+
+def get_document_status(document_id: UUID) -> DocumentStatus:
+    """
+    Get the status of a document in Ragie
+    """
+    ragie_response = requests.get(
+        f"https://api.ragie.ai/documents/{document_id}",
+        headers={
+            "Authorization": f"Bearer {RAGIE_API_KEY}",
+            "Accept": "application/json",
+        },
+    )
+
+    if not ragie_response.ok:
+        raise Exception(f"Ragie API error: {ragie_response.text}")
+
+    response_data = ragie_response.json()
+    return DocumentStatus(
+        id=UUID(response_data["id"]),
+        created_at=response_data["created_at"],
+        updated_at=response_data["updated_at"],
+        status=response_data["status"],
+        name=response_data["name"],
+        metadata=DocumentMetadata(**response_data["metadata"]),
+        chunk_count=response_data["chunk_count"],
+        external_id=response_data.get("external_id"),
+    )
